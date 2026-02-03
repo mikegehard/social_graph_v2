@@ -58,6 +58,7 @@ test_binary() {
 test_binary "node" "--version"
 test_binary "npm" "--version"
 test_binary "npx" "--version"
+test_binary "tsc" "--version"
 test_binary "git" "--version"
 test_binary "curl" "--version"
 

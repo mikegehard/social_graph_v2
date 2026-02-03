@@ -13,6 +13,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install global TypeScript tooling (required for inner-loop checks)
+RUN npm install -g typescript@5.6.3
+
 # Create non-root user
 RUN useradd -m $USERNAME
 
