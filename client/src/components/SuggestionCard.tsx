@@ -63,24 +63,24 @@ export default function SuggestionCard({
   status = 'pending',
   onMakeIntro,
   onMaybe,
-  onDismiss,
+  onDismiss: _onDismiss,
   onThumbsUp,
   onThumbsDown,
   isPending = false,
-  matchId,
+  matchId: _matchId,
   aiExplanation,
   rawScore,
   scoreBreakdown,
   confidenceScores,
   matchVersion,
 }: SuggestionCardProps) {
-  const scoreColors = {
+  const _scoreColors = {
     1: "bg-muted text-muted-foreground",
     2: "bg-primary/20 text-primary",
     3: "bg-primary text-primary-foreground",
   };
 
-  const scoreLabels = {
+  const _scoreLabels = {
     1: "Okay",
     2: "Good",
     3: "Highly Likely",

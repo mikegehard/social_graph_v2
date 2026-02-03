@@ -4,6 +4,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { researchContact, extractThesis, embedContact } from '@/lib/edgeFunctions';
 
+interface PipelineContact {
+  id: string;
+  name: string | null;
+  company: string | null;
+  company_url: string | null;
+  email: string | null;
+  title: string | null;
+  bio: string | null;
+  investor_notes: string | null;
+  contact_type: string[] | null;
+  is_investor: boolean | null;
+}
+
 interface PipelineProgress {
   processed: number;
   total: number;
@@ -117,8 +130,8 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const fetchAllContactsForEnrichment = async () => {
-    const allContacts: any[] = [];
+  const fetchAllContactsForEnrichment = async (): Promise<PipelineContact[]> => {
+    const allContacts: PipelineContact[] = [];
     const PAGE_SIZE = 1000;
     let from = 0;
     let hasMore = true;
@@ -145,7 +158,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     return allContacts;
   };
 
-  const runPipeline = useCallback(async (contacts: any[], startIndex: number = 0, initialState?: PipelineState) => {
+  const runPipeline = useCallback(async (contacts: PipelineContact[], startIndex: number = 0, initialState?: PipelineState) => {
     const BATCH_SIZE = 3;
     const BATCH_DELAY = 3000;
     const totalContacts = contacts.length;
@@ -153,7 +166,7 @@ export function PipelineProvider({ children }: { children: ReactNode }) {
     
     setTotalBatches(batchCount);
     
-    let state: PipelineState = initialState || {
+    const state: PipelineState = initialState || {
       contactIds: contacts.map(c => c.id),
       processedIds: [],
       totalContacts,

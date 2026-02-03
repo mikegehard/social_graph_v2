@@ -11,14 +11,13 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { extractThesis, researchContact, checkHunterStatus, runHunterBatch, checkBatchExtractionStatus, runBatchExtraction as runBatchExtractionApi } from "@/lib/edgeFunctions";
-import { Globe } from "lucide-react";
+import { extractThesis, checkHunterStatus, runHunterBatch, runBatchExtraction as runBatchExtractionApi } from "@/lib/edgeFunctions";
 
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [location] = useLocation();
+  const [_location] = useLocation();
   
   // Use pipeline context for background processing
   const {
@@ -38,15 +37,15 @@ export default function Settings() {
   } = usePipeline();
   
   // Legacy state for standalone thesis extraction (separate from pipeline)
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [legacyExtractionProgress, setLegacyExtractionProgress] = useState({ processed: 0, total: 0, succeeded: 0, failed: 0 });
+  const [_isExtracting, setIsExtracting] = useState(false);
+  const [_isPaused, setIsPaused] = useState(false);
+  const [_legacyExtractionProgress, setLegacyExtractionProgress] = useState({ processed: 0, total: 0, succeeded: 0, failed: 0 });
   const pausedRef = useRef(false);
   const abortRef = useRef(false);
   
   // Server-side batch extraction state
-  const [isServerExtracting, setIsServerExtracting] = useState(false);
-  const [serverProgress, setServerProgress] = useState<{ lastBatch: number; remaining: number } | null>(null);
+  const [_isServerExtracting, setIsServerExtracting] = useState(false);
+  const [_serverProgress, setServerProgress] = useState<{ lastBatch: number; remaining: number } | null>(null);
   const serverAbortRef = useRef(false);
   
   // Hunter.io email finding state
@@ -66,7 +65,7 @@ export default function Settings() {
       // Trigger sync
       queryClient.invalidateQueries({ queryKey: ['/user-preferences'] });
     }
-  }, [location, toast, queryClient]);
+  }, [_location, toast, queryClient]);
 
   // Fetch user preferences to check Google Calendar connection status
   const { data: preferences } = useQuery<{google_calendar_connected: boolean} | null>({
@@ -91,7 +90,7 @@ export default function Settings() {
   const [notifyAllMeetings, setNotifyAllMeetings] = useState(false);
 
   // Fetch notification preferences
-  const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } = useQuery({
+  const { data: notificationPrefs, isLoading: _isLoadingNotifPrefs } = useQuery({
     queryKey: ['/notification-preferences', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -118,7 +117,7 @@ export default function Settings() {
 
   // Save notification preferences
   const saveNotificationPrefs = useMutation({
-    mutationFn: async (updates: any) => {
+    mutationFn: async (updates: Record<string, boolean | number>) => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
         .from('user_preferences')
@@ -158,14 +157,14 @@ export default function Settings() {
   };
 
   // Query Hunter.io status
-  const { data: hunterStatus, refetch: refetchHunterStatus, isLoading: isHunterLoading, error: hunterError } = useQuery({
+  const { data: hunterStatus, refetch: refetchHunterStatus, isLoading: isHunterLoading, error: _hunterError } = useQuery({
     queryKey: ['/hunter-status'],
     queryFn: async () => {
       try {
         return await checkHunterStatus();
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Return null if not configured instead of throwing
-        if (e?.message?.includes('not configured')) {
+        if (e instanceof Error && e.message?.includes('not configured')) {
           return null;
         }
         throw e;
@@ -190,10 +189,10 @@ export default function Settings() {
       });
       refetchHunterStatus();
       queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Hunter.io Error",
-        description: error?.message || "Failed to process contacts",
+        description: error instanceof Error ? error.message : "Failed to process contacts",
         variant: "destructive",
       });
     } finally {
@@ -370,7 +369,7 @@ export default function Settings() {
           : "Background processing has been stopped.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to toggle background processing",
@@ -378,23 +377,27 @@ export default function Settings() {
       });
     },
   });
-  
+
+  // Contact type for pagination helpers
+  type ContactRow = { id: string; name: string | null; bio: string | null; title: string | null; investor_notes: string | null };
+  type ContactRowFull = ContactRow & { company: string | null; company_url: string | null; email: string | null; contact_type: string[] | null; is_investor: boolean | null };
+
   // Helper to fetch all rows with pagination
-  const fetchAllContacts = async () => {
-    const allContacts: any[] = [];
+  const fetchAllContacts = useCallback(async () => {
+    const allContacts: ContactRow[] = [];
     const PAGE_SIZE = 1000;
     let from = 0;
     let hasMore = true;
-    
+
     while (hasMore) {
       const { data, error } = await supabase
         .from('contacts')
         .select('id, name, bio, title, investor_notes')
         .or('bio.not.is.null,title.not.is.null,investor_notes.not.is.null')
         .range(from, from + PAGE_SIZE - 1);
-      
+
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         allContacts.push(...data);
         from += PAGE_SIZE;
@@ -403,24 +406,24 @@ export default function Settings() {
         hasMore = false;
       }
     }
-    
+
     return allContacts;
-  };
-  
-  const fetchAllThesisIds = async () => {
+  }, []);
+
+  const fetchAllThesisIds = useCallback(async () => {
     const allIds: string[] = [];
     const PAGE_SIZE = 1000;
     let from = 0;
     let hasMore = true;
-    
+
     while (hasMore) {
       const { data, error } = await supabase
         .from('theses')
         .select('contact_id')
         .range(from, from + PAGE_SIZE - 1);
-      
+
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         allIds.push(...data.map((t: { contact_id: string }) => t.contact_id));
         from += PAGE_SIZE;
@@ -429,12 +432,12 @@ export default function Settings() {
         hasMore = false;
       }
     }
-    
+
     return new Set(allIds);
-  };
+  }, []);
   
   // Batch thesis extraction function
-  const runBatchExtraction = useCallback(async () => {
+  const _runBatchExtraction = useCallback(async () => {
     setIsExtracting(true);
     setIsPaused(false);
     pausedRef.current = false;
@@ -568,26 +571,26 @@ export default function Settings() {
       });
       setIsExtracting(false);
     }
-  }, [toast, refetchThesisStats, queryClient]);
-  
-  const handlePauseResume = () => {
+  }, [toast, refetchThesisStats, queryClient, fetchAllContacts, fetchAllThesisIds]);
+
+  const _handlePauseResume = () => {
     pausedRef.current = !pausedRef.current;
     setIsPaused(pausedRef.current);
   };
-  
-  const handleStop = () => {
+
+  const _handleStop = () => {
     abortRef.current = true;
     pausedRef.current = false;
     setIsPaused(false);
   };
   
   // Fetch all contacts for enrichment (ALL contacts with names)
-  const fetchAllContactsForEnrichment = async () => {
-    const allContacts: any[] = [];
+  const fetchAllContactsForEnrichment = useCallback(async () => {
+    const allContacts: ContactRowFull[] = [];
     const PAGE_SIZE = 1000;
     let from = 0;
     let hasMore = true;
-    
+
     while (hasMore) {
       const { data, error } = await supabase
         .from('contacts')
@@ -595,9 +598,9 @@ export default function Settings() {
         .neq('name', null)
         .neq('name', '')
         .range(from, from + PAGE_SIZE - 1);
-      
+
       if (error) throw error;
-      
+
       if (data && data.length > 0) {
         allContacts.push(...data);
         from += PAGE_SIZE;
@@ -606,13 +609,13 @@ export default function Settings() {
         hasMore = false;
       }
     }
-    
+
     return allContacts;
-  };
+  }, []);
   
   
   // Run thesis extraction on ALL contacts (not just ones missing thesis)
-  const runBatchThesisExtractionAll = useCallback(async () => {
+  const _runBatchThesisExtractionAll = useCallback(async () => {
     setIsExtracting(true);
     setIsPaused(false);
     pausedRef.current = false;
@@ -729,11 +732,11 @@ export default function Settings() {
       });
       setIsExtracting(false);
     }
-  }, [toast, refetchThesisStats, queryClient]);
-  
-  
+  }, [toast, refetchThesisStats, queryClient, fetchAllContactsForEnrichment]);
+
+
   // Server-side batch extraction - continues even if page is refreshed
-  const runServerBatchExtraction = useCallback(async () => {
+  const _runServerBatchExtraction = useCallback(async () => {
     setIsServerExtracting(true);
     serverAbortRef.current = false;
     let totalProcessed = 0;
@@ -788,12 +791,12 @@ export default function Settings() {
         });
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Server extraction error:', error);
-      toast({ 
-        title: "Extraction error", 
-        description: error?.message || "Failed to process batch", 
-        variant: "destructive" 
+      toast({
+        title: "Extraction error",
+        description: error instanceof Error ? error.message : "Failed to process batch",
+        variant: "destructive"
       });
     } finally {
       setIsServerExtracting(false);
@@ -802,7 +805,7 @@ export default function Settings() {
     }
   }, [toast, refetchThesisStats, queryClient]);
   
-  const handleStopServerExtraction = () => {
+  const _handleStopServerExtraction = () => {
     serverAbortRef.current = true;
   };
 

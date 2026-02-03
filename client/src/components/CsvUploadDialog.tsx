@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { Upload, FileText, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Papa from "papaparse";
 import { supabase } from "@/lib/supabase";
 import { enrichContact } from "@/lib/edgeFunctions";
@@ -51,10 +51,75 @@ interface ParsedContact {
 
 type UploadStage = 'upload' | 'parsing' | 'importing' | 'enriching' | 'complete';
 
+// Type for existing contacts fetched from the database
+interface ExistingContact {
+  id: string;
+  name: string;
+  email?: string | null;
+  company?: string | null;
+  title?: string | null;
+  linkedin_url?: string | null;
+  location?: string | null;
+  phone?: string | null;
+  bio?: string | null;
+  company_url?: string | null;
+  company_address?: string | null;
+  company_employees?: string | null;
+  company_founded?: string | null;
+  company_linkedin?: string | null;
+  company_twitter?: string | null;
+}
+
+// Type for pending contacts to be inserted
+interface PendingContact {
+  name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  title?: string | null;
+  company?: string | null;
+  linkedin_url?: string | null;
+  location?: string | null;
+  phone?: string | null;
+  category?: string | null;
+  twitter?: string | null;
+  angellist?: string | null;
+  bio?: string | null;
+  company_address?: string | null;
+  company_employees?: string | null;
+  company_founded?: string | null;
+  company_url?: string | null;
+  company_linkedin?: string | null;
+  company_twitter?: string | null;
+  company_facebook?: string | null;
+  company_angellist?: string | null;
+  company_crunchbase?: string | null;
+  company_owler?: string | null;
+  youtube_vimeo?: string | null;
+  owned_by_profile?: string;
+}
+
+// Type for update data
+interface ContactUpdateData {
+  email?: string;
+  title?: string;
+  company?: string;
+  linkedin_url?: string;
+  location?: string;
+  phone?: string;
+  bio?: string;
+  company_url?: string;
+  company_address?: string;
+  company_employees?: string;
+  company_founded?: string;
+  company_linkedin?: string;
+  company_twitter?: string;
+}
+
 export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [stage, setStage] = useState<UploadStage>('upload');
-  const [contacts, setContacts] = useState<ParsedContact[]>([]);
+  const [, setContacts] = useState<ParsedContact[]>([]);
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState({
     total: 0,
@@ -88,7 +153,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
     return `https://linkedin.com/in/${url}`;
   };
 
-  const parseCSV = useCallback((file: File) => {
+  const parseCSV = (file: File) => {
     setStage('parsing');
     setProgress(0);
 
@@ -96,7 +161,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const parsed: ParsedContact[] = results.data.map((row: any) => {
+        const parsed: ParsedContact[] = results.data.map((row: Record<string, string | undefined>) => {
           const errors: string[] = [];
           
           // Extract and validate fields (flexible column name matching)
@@ -182,9 +247,9 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
         });
 
         setContacts(parsed);
-        setStats({ ...stats, total: parsed.length });
+        setStats(s => ({ ...s, total: parsed.length }));
         setProgress(100);
-        
+
         toast({
           title: "CSV parsed successfully!",
           description: `Found ${parsed.length} contacts. Starting import...`,
@@ -193,16 +258,16 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
         // Auto-start import (duplicates are handled during import)
         await importContacts(parsed);
       },
-      error: (error) => {
+      error: (parseError) => {
         toast({
           title: "Failed to parse CSV",
-          description: error.message,
+          description: parseError.message,
           variant: "destructive",
         });
         setStage('upload');
       },
     });
-  }, []);
+  };
 
   const importContacts = async (contactsToImport: ParsedContact[]) => {
     setStage('importing');
@@ -222,7 +287,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
     const { data: existingContacts, error: fetchError } = await supabase
       .from('contacts')
       .select('id, name, email, company, title, linkedin_url, location, phone, bio, company_url, company_address, company_employees, company_founded, company_linkedin, company_twitter')
-      .eq('owned_by_profile', user.id) as { data: any[] | null; error: any };
+      .eq('owned_by_profile', user.id) as { data: ExistingContact[] | null; error: unknown };
 
     if (fetchError) {
       console.error('Error fetching existing contacts:', fetchError);
@@ -235,8 +300,8 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
     }
 
     // Build lookup maps for existing contacts (normalize with trim + lowercase)
-    const existingByEmail = new Map<string, any>();
-    const existingByNameCompany = new Map<string, any>();
+    const existingByEmail = new Map<string, ExistingContact>();
+    const existingByNameCompany = new Map<string, ExistingContact>();
     
     existingContacts?.forEach(contact => {
       if (contact.email) {
@@ -249,19 +314,19 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
     });
 
     // Primary storage for pending new contacts (to merge same-CSV duplicates)
-    const pendingContacts: any[] = [];
-    const pendingByEmail = new Map<string, any>();
-    const pendingByNameCompany = new Map<string, any>();
-    const pendingByName = new Map<string, any[]>(); // Array because name alone might not be unique
+    const pendingContacts: PendingContact[] = [];
+    const pendingByEmail = new Map<string, PendingContact>();
+    const pendingByNameCompany = new Map<string, PendingContact>();
+    const pendingByName = new Map<string, PendingContact[]>(); // Array because name alone might not be unique
 
     let merged = 0;
     let failed = 0;
     const insertedContactIds: string[] = [];
     const warnings: string[] = [];
-    const toUpdate: Array<{ id: string; data: any }> = [];
+    const toUpdate: Array<{ id: string; data: ContactUpdateData }> = [];
 
     // Helper to update pending lookup maps (normalize with trim + lowercase)
-    const updatePendingMaps = (contact: any) => {
+    const updatePendingMaps = (contact: PendingContact) => {
       if (contact.email) {
         pendingByEmail.set(contact.email.trim().toLowerCase(), contact);
       }
@@ -308,7 +373,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
 
       if (existingDuplicate) {
         // MERGE with EXISTING contact: Prepare update (only fill in missing fields)
-        const updateData: any = {};
+        const updateData: ContactUpdateData = {};
         
         if (csvContact.email && !existingDuplicate.email) updateData.email = csvContact.email;
         if (csvContact.title && !existingDuplicate.title) updateData.title = csvContact.title;
@@ -498,16 +563,16 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
       try {
         const { data, error } = await supabase
           .from('contacts')
-          .insert(batch as any)
-          .select('id') as { data: any[] | null; error: any };
+          .insert(batch as PendingContact[])
+          .select('id') as { data: { id: string }[] | null; error: unknown };
 
         if (error) throw error;
-        
+
         if (data) {
-          insertedContactIds.push(...data.map((c: any) => c.id));
+          insertedContactIds.push(...data.map((c) => c.id));
           createdCount += data.length;
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Batch insert error:', error);
         failed += batch.length;
       }
@@ -532,11 +597,11 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
       try {
         // Supabase doesn't support batch updates, so we do them in parallel
         await Promise.all(
-          batch.map(({ id, data }: { id: string; data: any }) =>
-            supabase.from('contacts').update(data as any).eq('id', id)
+          batch.map(({ id, data }: { id: string; data: ContactUpdateData }) =>
+            supabase.from('contacts').update(data).eq('id', id)
           )
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Batch update error:', error);
       }
 
@@ -591,7 +656,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
       .from('contacts')
       .select('id, email, name, company, linkedin_url')
       .in('id', contactIds)
-      .or('email.not.is.null,linkedin_url.not.is.null,company.not.is.null') as { data: any[] | null };
+      .or('email.not.is.null,linkedin_url.not.is.null,company.not.is.null') as { data: { id: string; email?: string; name?: string; company?: string; linkedin_url?: string }[] | null };
 
     if (!contactsToEnrich || contactsToEnrich.length === 0) {
       // No enrichment needed, proceed to thesis extraction
@@ -616,7 +681,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
         try {
           await enrichContact(contact.id, 'auto');
           enriched++;
-        } catch (error) {
+        } catch {
           enrichmentFailed++;
         }
       });
@@ -648,7 +713,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
       .from('contacts')
       .select('id, name, bio, title, investor_notes')
       .in('id', contactIds)
-      .or('bio.not.is.null,title.not.is.null,investor_notes.not.is.null') as { data: any[] | null };
+      .or('bio.not.is.null,title.not.is.null,investor_notes.not.is.null') as { data: { id: string; name?: string; bio?: string; title?: string; investor_notes?: string }[] | null };
 
     if (!contactsForThesis || contactsForThesis.length === 0) {
       setStage('complete');
@@ -669,7 +734,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
 
     setProgress(0);
     let thesisExtracted = 0;
-    let thesisFailed = 0;
+    let _thesisFailed = 0;
 
     // Extract thesis with rate limiting (max 5 concurrent to avoid overloading OpenAI)
     const CONCURRENT_LIMIT = 5;
@@ -685,8 +750,8 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
             await extractThesis(contact.id);
             thesisExtracted++;
             console.log(`[Auto] Thesis extracted for: ${contact.name}`);
-          } catch (error) {
-            thesisFailed++;
+          } catch {
+            _thesisFailed++;
             console.log(`[Auto] Thesis extraction failed for: ${contact.name}`);
           }
         });
@@ -705,7 +770,7 @@ export default function CsvUploadDialog({ open, onOpenChange }: CsvUploadDialogP
           description: `Extracted keywords from ${thesisExtracted} contacts.`,
         });
       }
-    } catch (error) {
+    } catch {
       console.log('[Auto] Thesis extraction skipped (edge function may not be deployed)');
     }
 

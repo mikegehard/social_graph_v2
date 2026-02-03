@@ -9,6 +9,7 @@ import EnrichmentDialog from "@/components/EnrichmentDialog";
 import { Plus, Search, Upload, Users } from "lucide-react";
 import { useContacts, useContactsCount } from "@/hooks/useContacts";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Contact } from "@shared/schema";
 
 export default function Contacts() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,7 +17,7 @@ export default function Contacts() {
   const [showContactDialog, setShowContactDialog] = useState(false);
   const [showCsvUploadDialog, setShowCsvUploadDialog] = useState(false);
   const [showEnrichmentDialog, setShowEnrichmentDialog] = useState(false);
-  const [editingContact, setEditingContact] = useState<any>(null);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [enrichingContact, setEnrichingContact] = useState<{ id: string; name: string } | null>(null);
   const CONTACTS_PER_PAGE = 50;
   

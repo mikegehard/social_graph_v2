@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/card";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { isSupabaseConfigured, supabaseUrl, supabaseAnonKey } from "@/lib/supabase";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {

@@ -34,7 +34,7 @@ export default function SwipeableRecordingCard({
   
   // Delete button smoothly appears and grows as you drag
   const deleteButtonOpacity = useTransform(x, [0, -80, -200], [0, 0.4, 1]);
-  const deleteButtonScale = useTransform(x, [0, -80, -200], [0.3, 0.7, 1]);
+  const _deleteButtonScale = useTransform(x, [0, -80, -200], [0.3, 0.7, 1]);
   
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const deleteThreshold = -MAX_DRAG * 0.6; // Delete when dragged 60% across

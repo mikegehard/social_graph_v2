@@ -1,11 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StructuredTranscriptView from "@/components/StructuredTranscriptView";
-import MeetingSummary from "@/components/MeetingSummary";
-import PersonSection from "@/components/PersonSection";
 import SuggestionCard from "@/components/SuggestionCard";
-import IntroEmailPanel from "@/components/IntroEmailPanel";
 import IntroEmailDrawer from "@/components/IntroEmailDrawer";
 import { ArrowLeft, Download, RefreshCw } from "lucide-react";
 import { Link, useRoute } from "wouter";
@@ -129,7 +125,7 @@ export default function ConversationDetail() {
   const duration = conversation?.durationSeconds || 0;
   const durationMinutes = Math.round(duration / 60);
 
-  const handlePromiseIntro = (participant: string, contactName: string) => {
+  const _handlePromiseIntro = (_participant: string, contactName: string) => {
     const newPromise: PromisedIntro = {
       id: `${Date.now()}-${Math.random()}`,
       contactName,
@@ -138,15 +134,15 @@ export default function ConversationDetail() {
     };
     setPromisedIntros(prev => ({
       ...prev,
-      [participant]: [...(prev[participant] || []), newPromise]
+      [_participant]: [...(prev[_participant] || []), newPromise]
     }));
     toast({
       title: "Intro promised!",
-      description: `You promised to introduce ${participant} to ${contactName}`,
+      description: `You promised to introduce ${_participant} to ${contactName}`,
     });
   };
 
-  const handleMarkFulfilled = (participant: string, promiseId: string) => {
+  const _handleMarkFulfilled = (participant: string, promiseId: string) => {
     setPromisedIntros(prev => {
       const updated = { ...prev };
       updated[participant] = (updated[participant] || []).map(promise =>
@@ -160,11 +156,11 @@ export default function ConversationDetail() {
     });
   };
 
-  const getPersonPromises = (personName: string) => {
+  const _getPersonPromises = (personName: string) => {
     const promised = promisedIntros[personName] || [];
     return promised.map(promise => ({
       ...promise,
-      onMarkFulfilled: () => handleMarkFulfilled(personName, promise.id),
+      onMarkFulfilled: () => _handleMarkFulfilled(personName, promise.id),
     }));
   };
 
@@ -233,7 +229,7 @@ export default function ConversationDetail() {
     );
   }
 
-  const handleSendEmail = (to: string, message: string) => {
+  const _handleSendEmail = (to: string, message: string) => {
     console.log('Sending email to:', to);
     console.log('Message:', message);
     toast({

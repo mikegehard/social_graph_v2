@@ -1,0 +1,12 @@
+{
+  "name": "CI Environment",
+  "build": {
+    "dockerfile": "../../project-container/Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    }
+  },
+  "remoteUser": "appuser"
+}

@@ -12,7 +12,7 @@ import PipelineStatusIndicator from "@/components/PipelineStatusIndicator";
 import { useMeetingNotifications } from "@/hooks/useMeetingNotifications";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import Record from "@/pages/Record";
+import _Record from "@/pages/Record";
 import Contacts from "@/pages/Contacts";
 import History from "@/pages/History";
 import ConversationDetail from "@/pages/ConversationDetail";
@@ -26,6 +26,15 @@ import TestAuth from "@/pages/TestAuth";
 import UpcomingMeetings from "@/pages/UpcomingMeetings";
 import MeetingPrep from "@/pages/MeetingPrep";
 import { useEffect } from "react";
+
+// Redirect component for /record route
+function RecordRedirect() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation("/");
+  }, [setLocation]);
+  return null;
+}
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
@@ -59,13 +68,7 @@ function Router() {
       <Route path="/">
         {() => <ProtectedRoute component={Home} />}
       </Route>
-      <Route path="/record">
-        {() => {
-          const [, setLocation] = useLocation();
-          setLocation("/");
-          return null;
-        }}
-      </Route>
+      <Route path="/record" component={RecordRedirect} />
       <Route path="/contacts">
         {() => <ProtectedRoute component={Contacts} />}
       </Route>

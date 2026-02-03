@@ -30,6 +30,7 @@ import {
   processParticipants,
 } from "@/lib/edgeFunctions";
 import { supabase, getSession } from "@/lib/supabase";
+import type { InsertConversation } from "@shared/schema";
 
 interface TranscriptEntry {
   t: string;
@@ -75,18 +76,11 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
   const createConversation = useCreateConversation();
   const updateConversation = useUpdateConversation();
 
-  const handleAudioData = useCallback(async (audioBlob: Blob) => {
-    if (!conversationIdRef.current) return;
+  // Store toast in a ref to avoid dependency issues
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
-    console.log('✅ Audio chunk received:', audioBlob.size, 'bytes');
-    audioQueueRef.current.push(audioBlob);
-
-    if (!isUploadingRef.current) {
-      await processAudioQueue();
-    }
-  }, []);
-
-  const processAudioQueue = async () => {
+  const processAudioQueue = useCallback(async () => {
     const currentConversationId = conversationIdRef.current;
     if (audioQueueRef.current.length === 0 || !currentConversationId) return;
 
@@ -101,11 +95,12 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
       console.log('✅ Transcription result:', result);
 
       if (audioQueueRef.current.length > 0) {
-        await processAudioQueue();
+        // Use setTimeout to avoid recursion issues
+        setTimeout(() => processAudioQueue(), 0);
       }
     } catch (error) {
       console.error('❌ Transcription error:', error);
-      toast({
+      toastRef.current({
         title: "Transcription error",
         description: error instanceof Error ? error.message : "Failed to transcribe audio",
         variant: "destructive",
@@ -114,7 +109,18 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
       isUploadingRef.current = false;
       setIsTranscribing(false);
     }
-  };
+  }, []);
+
+  const handleAudioData = useCallback(async (audioBlob: Blob) => {
+    if (!conversationIdRef.current) return;
+
+    console.log('✅ Audio chunk received:', audioBlob.size, 'bytes');
+    audioQueueRef.current.push(audioBlob);
+
+    if (!isUploadingRef.current) {
+      await processAudioQueue();
+    }
+  }, [processAudioQueue]);
 
   const { state: audioState, controls: audioControls } = useAudioRecorder(handleAudioData);
 
@@ -140,8 +146,8 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
       recordedAt: new Date(),
       status: 'recording',
       eventId: eventId || null,
-      ownedByProfile: '',
-    } as any);
+      ownedByProfile: '', // Will be replaced with user.id in mutation
+    } as InsertConversation);
 
     if (!result || !result.id) {
       toast({
@@ -242,6 +248,7 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
     if (!open && audioState.isRecording) {
       handleStop();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
 
@@ -283,7 +290,13 @@ export default function RecordingDrawer({ open, onOpenChange, eventId }: Recordi
         },
         async (payload) => {
           console.log('🎯 Received match suggestion event:', payload.eventType, payload.new);
-          const match = payload.new as any;
+          const match = payload.new as {
+            id?: string;
+            contact_id?: string;
+            score?: number;
+            reasons?: string[];
+            ai_explanation?: string | null;
+          } | null;
           if (!match || !match.contact_id) return;
           
           // Fetch the contact details for this match including relationship_strength

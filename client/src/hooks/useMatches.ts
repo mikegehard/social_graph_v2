@@ -43,11 +43,19 @@ export function useMatchSuggestions(conversationId: string) {
           )
         `)
         .eq('conversation_id', conversationId)
-        .order('score', { ascending: false }) as any;
-      
+        .order('score', { ascending: false });
+
       if (error) throw error;
-      
-      return (data || []).map((row: any) => ({
+
+      type MatchRow = Record<string, unknown> & {
+        contact?: {
+          check_size_min?: number;
+          check_size_max?: number;
+          investor_notes?: string;
+          contact_type?: string[];
+        }
+      };
+      return (data || []).map((row: MatchRow) => ({
         ...matchFromDb(row),
         contact: row.contact ? {
           ...row.contact,
@@ -87,11 +95,19 @@ export function useTopMatches(conversationId: string, minScore: number = 2) {
         .eq('conversation_id', conversationId)
         .gte('score', minScore)
         .order('score', { ascending: false })
-        .limit(10) as any;
-      
+        .limit(10);
+
       if (error) throw error;
-      
-      return (data || []).map((row: any) => ({
+
+      type MatchRow = Record<string, unknown> & {
+        contact?: {
+          check_size_min?: number;
+          check_size_max?: number;
+          investor_notes?: string;
+          contact_type?: string[];
+        }
+      };
+      return (data || []).map((row: MatchRow) => ({
         ...matchFromDb(row),
         contact: row.contact ? {
           ...row.contact,
@@ -112,13 +128,13 @@ export function useConversationMatchStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('match_suggestions')
-        .select('conversation_id, status') as any;
-      
+        .select('conversation_id, status');
+
       if (error) throw error;
-      
+
       const stats: Record<string, { introsOffered: number; introsMade: number }> = {};
-      
-      (data || []).forEach((match: any) => {
+
+      (data || []).forEach((match: { conversation_id: string; status: string }) => {
         if (!stats[match.conversation_id]) {
           stats[match.conversation_id] = { introsOffered: 0, introsMade: 0 };
         }
@@ -140,7 +156,7 @@ export function useUpdateMatchStatus(conversationId: string) {
     mutationFn: async ({ matchId, status }: { matchId: string; status: string }) => {
       const { data, error } = await supabase
         .from('match_suggestions')
-        .update({ status } as any)
+        .update({ status } as Record<string, unknown>)
         .eq('id', matchId)
         .select();
       

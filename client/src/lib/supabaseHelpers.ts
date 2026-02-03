@@ -4,59 +4,62 @@
 
 import type { Contact, Conversation, Profile, UserPreferences, ConversationSegment, MatchSuggestion, CalendarEvent } from '@shared/schema';
 
+// Type for database rows from Supabase
+type DbRow = Record<string, unknown>;
+
 // ============================================================================
 // CONTACTS
 // ============================================================================
 
-export function contactFromDb(dbRow: any): Contact {
+export function contactFromDb(dbRow: DbRow): Contact {
   return {
-    id: dbRow.id,
-    ownedByProfile: dbRow.owned_by_profile,
-    name: dbRow.name,
-    firstName: dbRow.first_name,
-    lastName: dbRow.last_name,
-    email: dbRow.email,
-    company: dbRow.company,
-    title: dbRow.title,
-    linkedinUrl: dbRow.linkedin_url,
-    location: dbRow.location,
-    phone: dbRow.phone,
-    category: dbRow.category,
-    twitter: dbRow.twitter,
-    angellist: dbRow.angellist,
-    bio: dbRow.bio,
-    companyAddress: dbRow.company_address,
-    companyEmployees: dbRow.company_employees,
-    companyFounded: dbRow.company_founded,
-    companyUrl: dbRow.company_url,
-    companyLinkedin: dbRow.company_linkedin,
-    companyTwitter: dbRow.company_twitter,
-    companyFacebook: dbRow.company_facebook,
-    companyAngellist: dbRow.company_angellist,
-    companyCrunchbase: dbRow.company_crunchbase,
-    companyOwler: dbRow.company_owler,
-    youtubeVimeo: dbRow.youtube_vimeo,
-    isShared: dbRow.is_shared,
-    status: dbRow.status || 'verified',
-    isInvestor: dbRow.is_investor ?? false,
-    contactType: dbRow.contact_type || [],
-    checkSizeMin: dbRow.check_size_min,
-    checkSizeMax: dbRow.check_size_max,
-    investorNotes: dbRow.investor_notes,
-    preferredStages: dbRow.preferred_stages,
-    preferredTeamSizes: dbRow.preferred_team_sizes,
-    preferredTenure: dbRow.preferred_tenure,
-    isFamilyOffice: dbRow.is_family_office ?? false,
-    investmentTypes: dbRow.investment_types,
-    avgCheckSize: dbRow.avg_check_size,
-    createdAt: new Date(dbRow.created_at),
-    updatedAt: new Date(dbRow.updated_at),
+    id: dbRow.id as string,
+    ownedByProfile: dbRow.owned_by_profile as string,
+    name: dbRow.name as string,
+    firstName: dbRow.first_name as string | null,
+    lastName: dbRow.last_name as string | null,
+    email: dbRow.email as string | null,
+    company: dbRow.company as string | null,
+    title: dbRow.title as string | null,
+    linkedinUrl: dbRow.linkedin_url as string | null,
+    location: dbRow.location as string | null,
+    phone: dbRow.phone as string | null,
+    category: dbRow.category as string | null,
+    twitter: dbRow.twitter as string | null,
+    angellist: dbRow.angellist as string | null,
+    bio: dbRow.bio as string | null,
+    companyAddress: dbRow.company_address as string | null,
+    companyEmployees: dbRow.company_employees as string | null,
+    companyFounded: dbRow.company_founded as string | null,
+    companyUrl: dbRow.company_url as string | null,
+    companyLinkedin: dbRow.company_linkedin as string | null,
+    companyTwitter: dbRow.company_twitter as string | null,
+    companyFacebook: dbRow.company_facebook as string | null,
+    companyAngellist: dbRow.company_angellist as string | null,
+    companyCrunchbase: dbRow.company_crunchbase as string | null,
+    companyOwler: dbRow.company_owler as string | null,
+    youtubeVimeo: dbRow.youtube_vimeo as string | null,
+    isShared: dbRow.is_shared as boolean | null,
+    status: (dbRow.status as string) || 'verified',
+    isInvestor: (dbRow.is_investor as boolean) ?? false,
+    contactType: (dbRow.contact_type as string[]) || [],
+    checkSizeMin: dbRow.check_size_min as number | null,
+    checkSizeMax: dbRow.check_size_max as number | null,
+    investorNotes: dbRow.investor_notes as string | null,
+    preferredStages: dbRow.preferred_stages as string[] | null,
+    preferredTeamSizes: dbRow.preferred_team_sizes as string[] | null,
+    preferredTenure: dbRow.preferred_tenure as string[] | null,
+    isFamilyOffice: (dbRow.is_family_office as boolean) ?? false,
+    investmentTypes: dbRow.investment_types as string[] | null,
+    avgCheckSize: dbRow.avg_check_size as number | null,
+    createdAt: new Date(dbRow.created_at as string),
+    updatedAt: new Date(dbRow.updated_at as string),
   };
 }
 
-export function contactToDb(contact: Partial<Contact>): any {
-  const dbRow: any = {};
-  
+export function contactToDb(contact: Partial<Contact>): DbRow {
+  const dbRow: DbRow = {};
+
   // Always include fields if they're present (including null to allow clearing)
   if (contact.id !== undefined) dbRow.id = contact.id;
   if (contact.ownedByProfile !== undefined) dbRow.owned_by_profile = contact.ownedByProfile;
@@ -97,7 +100,7 @@ export function contactToDb(contact: Partial<Contact>): any {
   if (contact.isFamilyOffice !== undefined) dbRow.is_family_office = contact.isFamilyOffice;
   if (contact.investmentTypes !== undefined) dbRow.investment_types = contact.investmentTypes;
   if (contact.avgCheckSize !== undefined) dbRow.avg_check_size = contact.avgCheckSize;
-  
+
   return dbRow;
 }
 
@@ -109,26 +112,26 @@ export function contactToDb(contact: Partial<Contact>): any {
 // CALENDAR EVENTS
 // ============================================================================
 
-export function calendarEventFromDb(dbRow: any): CalendarEvent {
+export function calendarEventFromDb(dbRow: DbRow): CalendarEvent {
   return {
-    id: dbRow.id,
-    ownedByProfile: dbRow.owned_by_profile,
-    title: dbRow.title,
-    description: dbRow.description,
-    startTime: new Date(dbRow.start_time),
-    endTime: new Date(dbRow.end_time),
-    attendees: dbRow.attendees || [],
-    location: dbRow.location,
-    meetingUrl: dbRow.meeting_url,
-    externalEventId: dbRow.external_event_id,
-    createdAt: new Date(dbRow.created_at),
-    updatedAt: new Date(dbRow.updated_at),
+    id: dbRow.id as string,
+    ownedByProfile: dbRow.owned_by_profile as string,
+    title: dbRow.title as string,
+    description: dbRow.description as string | null,
+    startTime: new Date(dbRow.start_time as string),
+    endTime: new Date(dbRow.end_time as string),
+    attendees: (dbRow.attendees as string[]) || [],
+    location: dbRow.location as string | null,
+    meetingUrl: dbRow.meeting_url as string | null,
+    externalEventId: dbRow.external_event_id as string | null,
+    createdAt: new Date(dbRow.created_at as string),
+    updatedAt: new Date(dbRow.updated_at as string),
   };
 }
 
-export function calendarEventToDb(event: Partial<CalendarEvent>): any {
-  const dbRow: any = {};
-  
+export function calendarEventToDb(event: Partial<CalendarEvent>): DbRow {
+  const dbRow: DbRow = {};
+
   if (event.id !== undefined) dbRow.id = event.id;
   if (event.ownedByProfile !== undefined) dbRow.owned_by_profile = event.ownedByProfile;
   if (event.title !== undefined) dbRow.title = event.title;
@@ -139,26 +142,26 @@ export function calendarEventToDb(event: Partial<CalendarEvent>): any {
   if ('location' in event) dbRow.location = event.location;
   if ('meetingUrl' in event) dbRow.meeting_url = event.meetingUrl;
   if ('externalEventId' in event) dbRow.external_event_id = event.externalEventId;
-  
+
   return dbRow;
 }
 
-export function conversationFromDb(dbRow: any): Conversation {
+export function conversationFromDb(dbRow: DbRow): Conversation {
   return {
-    id: dbRow.id,
-    ownedByProfile: dbRow.owned_by_profile,
-    eventId: dbRow.event_id,
-    title: dbRow.title,
-    durationSeconds: dbRow.duration_seconds,
-    recordedAt: new Date(dbRow.recorded_at),
-    status: dbRow.status,
-    createdAt: new Date(dbRow.created_at),
+    id: dbRow.id as string,
+    ownedByProfile: dbRow.owned_by_profile as string,
+    eventId: dbRow.event_id as string | null,
+    title: dbRow.title as string,
+    durationSeconds: dbRow.duration_seconds as number | null,
+    recordedAt: new Date(dbRow.recorded_at as string),
+    status: dbRow.status as string,
+    createdAt: new Date(dbRow.created_at as string),
   };
 }
 
-export function conversationToDb(conversation: Partial<Conversation>): any {
-  const dbRow: any = {};
-  
+export function conversationToDb(conversation: Partial<Conversation>): DbRow {
+  const dbRow: DbRow = {};
+
   if (conversation.id !== undefined) dbRow.id = conversation.id;
   if (conversation.ownedByProfile !== undefined) dbRow.owned_by_profile = conversation.ownedByProfile;
   if ('eventId' in conversation) dbRow.event_id = conversation.eventId;
@@ -166,7 +169,7 @@ export function conversationToDb(conversation: Partial<Conversation>): any {
   if (conversation.durationSeconds !== undefined) dbRow.duration_seconds = conversation.durationSeconds;
   if (conversation.recordedAt !== undefined) dbRow.recorded_at = conversation.recordedAt.toISOString();
   if (conversation.status !== undefined) dbRow.status = conversation.status;
-  
+
   return dbRow;
 }
 
@@ -174,26 +177,26 @@ export function conversationToDb(conversation: Partial<Conversation>): any {
 // CONVERSATION SEGMENTS
 // ============================================================================
 
-export function segmentFromDb(dbRow: any): ConversationSegment {
+export function segmentFromDb(dbRow: DbRow): ConversationSegment {
   return {
-    id: dbRow.id,
-    conversationId: dbRow.conversation_id,
-    timestampMs: dbRow.timestamp_ms,
-    speaker: dbRow.speaker,
-    text: dbRow.text,
-    createdAt: new Date(dbRow.created_at),
+    id: dbRow.id as string,
+    conversationId: dbRow.conversation_id as string,
+    timestampMs: dbRow.timestamp_ms as number,
+    speaker: dbRow.speaker as string,
+    text: dbRow.text as string,
+    createdAt: new Date(dbRow.created_at as string),
   };
 }
 
-export function segmentToDb(segment: Partial<ConversationSegment>): any {
-  const dbRow: any = {};
-  
+export function segmentToDb(segment: Partial<ConversationSegment>): DbRow {
+  const dbRow: DbRow = {};
+
   if (segment.id !== undefined) dbRow.id = segment.id;
   if (segment.conversationId !== undefined) dbRow.conversation_id = segment.conversationId;
   if (segment.timestampMs !== undefined) dbRow.timestamp_ms = segment.timestampMs;
   if (segment.speaker !== undefined) dbRow.speaker = segment.speaker;
   if (segment.text !== undefined) dbRow.text = segment.text;
-  
+
   return dbRow;
 }
 
@@ -201,27 +204,27 @@ export function segmentToDb(segment: Partial<ConversationSegment>): any {
 // PROFILES
 // ============================================================================
 
-export function profileFromDb(dbRow: any): Profile {
+export function profileFromDb(dbRow: DbRow): Profile {
   return {
-    id: dbRow.id,
-    email: dbRow.email,
-    fullName: dbRow.full_name,
-    role: dbRow.role,
-    onboardingCompleted: dbRow.onboarding_completed,
-    createdAt: new Date(dbRow.created_at),
-    updatedAt: new Date(dbRow.updated_at),
+    id: dbRow.id as string,
+    email: dbRow.email as string,
+    fullName: dbRow.full_name as string | null,
+    role: dbRow.role as string,
+    onboardingCompleted: dbRow.onboarding_completed as boolean,
+    createdAt: new Date(dbRow.created_at as string),
+    updatedAt: new Date(dbRow.updated_at as string),
   };
 }
 
-export function profileToDb(profile: Partial<Profile>): any {
-  const dbRow: any = {};
-  
+export function profileToDb(profile: Partial<Profile>): DbRow {
+  const dbRow: DbRow = {};
+
   if (profile.id !== undefined) dbRow.id = profile.id;
   if (profile.email !== undefined) dbRow.email = profile.email;
   if (profile.fullName !== undefined) dbRow.full_name = profile.fullName;
   if (profile.role !== undefined) dbRow.role = profile.role;
   if (profile.onboardingCompleted !== undefined) dbRow.onboarding_completed = profile.onboardingCompleted;
-  
+
   return dbRow;
 }
 
@@ -229,24 +232,24 @@ export function profileToDb(profile: Partial<Profile>): any {
 // USER PREFERENCES
 // ============================================================================
 
-export function preferencesFromDb(dbRow: any): UserPreferences {
+export function preferencesFromDb(dbRow: DbRow): UserPreferences {
   return {
-    profileId: dbRow.profile_id,
-    autoTranscribe: dbRow.auto_transcribe,
-    notificationEmail: dbRow.notification_email,
-    matchThreshold: dbRow.match_threshold,
-    createdAt: new Date(dbRow.created_at),
+    profileId: dbRow.profile_id as string,
+    autoTranscribe: dbRow.auto_transcribe as boolean,
+    notificationEmail: dbRow.notification_email as boolean,
+    matchThreshold: dbRow.match_threshold as number,
+    createdAt: new Date(dbRow.created_at as string),
   };
 }
 
-export function preferencesToDb(prefs: Partial<UserPreferences>): any {
-  const dbRow: any = {};
-  
+export function preferencesToDb(prefs: Partial<UserPreferences>): DbRow {
+  const dbRow: DbRow = {};
+
   if (prefs.profileId !== undefined) dbRow.profile_id = prefs.profileId;
   if (prefs.autoTranscribe !== undefined) dbRow.auto_transcribe = prefs.autoTranscribe;
   if (prefs.notificationEmail !== undefined) dbRow.notification_email = prefs.notificationEmail;
   if (prefs.matchThreshold !== undefined) dbRow.match_threshold = prefs.matchThreshold;
-  
+
   return dbRow;
 }
 
@@ -254,18 +257,18 @@ export function preferencesToDb(prefs: Partial<UserPreferences>): any {
 // MATCH SUGGESTIONS
 // ============================================================================
 
-export function matchFromDb(dbRow: any): MatchSuggestion {
+export function matchFromDb(dbRow: DbRow): MatchSuggestion {
   return {
-    id: dbRow.id,
-    conversationId: dbRow.conversation_id,
-    contactId: dbRow.contact_id,
-    score: dbRow.score,
-    reasons: dbRow.reasons,
-    justification: dbRow.justification,
-    status: dbRow.status,
-    promiseStatus: dbRow.promise_status,
-    promisedAt: dbRow.promised_at ? new Date(dbRow.promised_at) : null,
-    createdAt: new Date(dbRow.created_at),
-    updatedAt: new Date(dbRow.updated_at),
+    id: dbRow.id as string,
+    conversationId: dbRow.conversation_id as string,
+    contactId: dbRow.contact_id as string,
+    score: dbRow.score as number,
+    reasons: dbRow.reasons as string[],
+    justification: dbRow.justification as string | null,
+    status: dbRow.status as string,
+    promiseStatus: dbRow.promise_status as string | null,
+    promisedAt: dbRow.promised_at ? new Date(dbRow.promised_at as string) : null,
+    createdAt: new Date(dbRow.created_at as string),
+    updatedAt: new Date(dbRow.updated_at as string),
   };
 }

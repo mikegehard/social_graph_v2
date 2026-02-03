@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -50,18 +50,12 @@ export default function IntroEmailDrawer({
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open && !email && matchId) {
-      loadEmail();
-    }
-  }, [open, matchId]);
-
-  const loadEmail = async () => {
+  const loadEmail = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await generateIntroEmail(matchId, conversationId);
       setEmail(data.email);
-    } catch (error) {
+    } catch {
       toast({
         title: "Error generating email",
         description: "Failed to generate introduction email",
@@ -70,7 +64,13 @@ export default function IntroEmailDrawer({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [matchId, conversationId, toast]);
+
+  useEffect(() => {
+    if (open && !email && matchId) {
+      loadEmail();
+    }
+  }, [open, matchId, email, loadEmail]);
 
   const handleCopy = () => {
     if (!email) return;

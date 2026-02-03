@@ -6,7 +6,7 @@ import { MeetingCard } from '@/components/MeetingCard';
 import { Button } from '@/components/ui/button';
 import { Calendar, RefreshCw } from 'lucide-react';
 import { useGoogleCalendarSync } from '@/hooks/useGoogleCalendarSync';
-import { format, isToday, isTomorrow, isThisWeek, startOfDay } from 'date-fns';
+import { isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 

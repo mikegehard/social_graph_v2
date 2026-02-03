@@ -5,6 +5,23 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+
+# Build artifacts
+*.tsbuildinfo
+
 # MCP Server
 mcp-supabase/node_modules
 mcp-supabase/dist

@@ -14,7 +14,7 @@ export function MeetingCard({ event }: MeetingCardProps) {
   const now = new Date();
   
   // Parse attendees from JSONB
-  const attendees = (event.attendees as any[]) || [];
+  const attendees = (event.attendees as unknown[]) || [];
   const attendeeCount = attendees.length;
   
   // Calculate time until meeting
@@ -22,7 +22,6 @@ export function MeetingCard({ event }: MeetingCardProps) {
   
   // Format time
   const timeString = format(startTime, 'h:mm a');
-  const dateString = format(startTime, 'EEE, MMM d');
   
   const handleClick = () => {
     setLocation(`/meetings/${event.id}`);
