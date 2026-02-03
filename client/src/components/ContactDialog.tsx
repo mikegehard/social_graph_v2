@@ -21,13 +21,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useCreateContact, useUpdateContact, useDeleteContact } from "@/hooks/useContacts";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Pencil, Mail, Phone, MapPin, Briefcase, Building2, Globe, Linkedin, Twitter, ExternalLink } from "lucide-react";
+import { Loader2, Trash2, Pencil, Mail, Phone, MapPin, Building2, Globe, Linkedin, Twitter, ExternalLink } from "lucide-react";
 import type { Contact } from "@shared/schema";
 import { useFeatureFlags } from "@/lib/featureFlags";
 import {
@@ -193,7 +191,7 @@ export default function ContactDialog({ open, onOpenChange, contact }: ContactDi
       // For legacy contacts with isInvestor flag or investorNotes but no contactType,
       // default to GP to preserve investor status and notes during save
       if (displayContactTypes.length === 0 && (contact.isInvestor || contact.investorNotes)) {
-        displayContactTypes = ['GP'] as any;
+        displayContactTypes = ['GP'] as ('LP' | 'GP' | 'Angel' | 'FamilyOffice' | 'Startup' | 'PE')[];
       }
       
       form.reset({
@@ -370,10 +368,10 @@ export default function ContactDialog({ open, onOpenChange, contact }: ContactDi
       form.reset();
       setIsEditing(false);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: `Failed to ${hasExistingContact ? 'update' : 'create'} contact`,
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -392,10 +390,10 @@ export default function ContactDialog({ open, onOpenChange, contact }: ContactDi
 
       setShowDeleteDialog(false);
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed to delete contact",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     }
@@ -852,15 +850,15 @@ export default function ContactDialog({ open, onOpenChange, contact }: ContactDi
                         <FormItem>
                           <FormLabel>Contact Type (select all that apply)</FormLabel>
                           <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { value: 'Angel', label: 'Angel' },
-                              { value: 'GP', label: 'GP' },
-                              { value: 'LP', label: 'LP' },
-                              { value: 'FamilyOffice', label: 'Family Office' },
-                              { value: 'PE', label: 'PE' },
-                              { value: 'Startup', label: 'Startup' },
-                            ].map((type) => {
-                              const isSelected = field.value?.includes(type.value as any);
+                            {([
+                              { value: 'Angel' as const, label: 'Angel' },
+                              { value: 'GP' as const, label: 'GP' },
+                              { value: 'LP' as const, label: 'LP' },
+                              { value: 'FamilyOffice' as const, label: 'Family Office' },
+                              { value: 'PE' as const, label: 'PE' },
+                              { value: 'Startup' as const, label: 'Startup' },
+                            ] as const).map((type) => {
+                              const isSelected = field.value?.includes(type.value);
                               return (
                                 <Button
                                   key={type.value}
@@ -871,7 +869,7 @@ export default function ContactDialog({ open, onOpenChange, contact }: ContactDi
                                     const currentValue = field.value || [];
                                     const newValue = isSelected
                                       ? currentValue.filter((v) => v !== type.value)
-                                      : [...currentValue, type.value as any];
+                                      : [...currentValue, type.value];
                                     field.onChange(newValue);
                                   }}
                                   data-testid={`button-contact-type-${type.value.toLowerCase()}`}

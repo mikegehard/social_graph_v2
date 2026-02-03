@@ -33,11 +33,11 @@ export function useConversations() {
       
       if (error) throw error;
       
-      return (data || []).map((row: any) => {
+      return (data || []).map((row: Record<string, unknown> & { conversation_participants?: Array<{ contacts?: { name?: string } }> }) => {
         // Extract participant names before calling conversationFromDb
         const participantNames = (row.conversation_participants || [])
-          .map((p: any) => p.contacts?.name)
-          .filter((name: string | null) => name != null);
+          .map((p: { contacts?: { name?: string } }) => p.contacts?.name)
+          .filter((name: string | undefined) => name != null) as string[];
         
         const conversation = conversationFromDb(row);
         return {
@@ -138,7 +138,7 @@ export function useUpdateConversation() {
       
       const { data, error } = await supabase
         .from('conversations')
-        .update(dbUpdates as any)
+        .update(dbUpdates as Record<string, unknown>)
         .eq('id', id)
         .select()
         .single();

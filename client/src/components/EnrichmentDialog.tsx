@@ -28,11 +28,16 @@ export default function EnrichmentDialog({
   contactName,
   open,
   onOpenChange,
-  provider = 'auto',
+  provider: _provider = 'auto',
 }: EnrichmentDialogProps) {
   console.log('[EnrichmentDialog] Rendering - open:', open, 'contactName:', contactName);
   
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    updated: boolean;
+    fields: string[];
+    bioFound?: boolean;
+    thesisFound?: boolean;
+  } | null>(null);
   const [isEnriching, setIsEnriching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -74,12 +79,13 @@ export default function EnrichmentDialog({
           description: "No new information found",
         });
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to enrich contact');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to enrich contact';
+      setError(errorMessage);
       console.error('Enrichment error:', err);
       toast({
         title: "Enrichment failed",
-        description: err.message || 'Failed to research contact',
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

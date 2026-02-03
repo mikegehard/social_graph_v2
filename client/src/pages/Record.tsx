@@ -14,12 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation, useSearch } from "wouter";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useProfile } from "@/hooks/useProfile";
-import { 
-  useCreateConversation, 
+import {
+  useCreateConversation,
   useUpdateConversation,
-  useConversationSegments 
 } from "@/hooks/useConversations";
-import { useMatchSuggestions } from "@/hooks/useMatches";
+import type { InsertConversation } from "@shared/schema";
 import { 
   transcribeAudio,
   extractParticipants,
@@ -50,6 +49,17 @@ interface Suggestion {
   reasons: string[];
 }
 
+interface MatchPayload {
+  contact_id: string;
+  score?: number;
+  reasons?: string[];
+}
+
+interface Attendee {
+  displayName?: string;
+  email: string;
+}
+
 export default function Record() {
   const searchParams = useSearch();
   const eventId = new URLSearchParams(searchParams).get('eventId');
@@ -59,7 +69,7 @@ export default function Record() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [_isProcessing, setIsProcessing] = useState(false);
   const [calendarEvent, setCalendarEvent] = useState<CalendarEvent | null>(null);
   const [validationPopoverOpen, setValidationPopoverOpen] = useState(false);
   const [speakersDetected, setSpeakersDetected] = useState<string[]>([]);
@@ -92,49 +102,40 @@ export default function Record() {
     }
   }, [eventId]);
 
-  // Audio chunk handler
-  const handleAudioData = useCallback(async (audioBlob: Blob) => {
-    if (!conversationIdRef.current) {
-      console.log('❌ No conversationId, skipping audio');
-      return;
-    }
-    
-    console.log('✅ Audio chunk received:', audioBlob.size, 'bytes', 'conversationId:', conversationIdRef.current);
-    audioQueueRef.current.push(audioBlob);
-    
-    // Process queue if not already uploading
-    if (!isUploadingRef.current) {
-      await processAudioQueue();
-    }
-  }, []);
+  // Store toast in a ref to avoid circular dependency
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   // Process audio queue sequentially
-  const processAudioQueue = async () => {
+  const processAudioQueue = useCallback(async () => {
     const currentConversationId = conversationIdRef.current;
     if (audioQueueRef.current.length === 0 || !currentConversationId) return;
-    
+
     isUploadingRef.current = true;
     setIsTranscribing(true);
-    
+
     try {
       const blob = audioQueueRef.current.shift();
       if (!blob) return;
-      
+
       console.log('🎤 Sending audio to transcription:', blob.size, 'bytes, conversationId:', currentConversationId);
-      
+
       // Send to transcription Edge Function
       const result = await transcribeAudio(blob, currentConversationId);
       console.log('✅ Transcription result:', result);
-      
-      // Continue processing queue
+
+      // Continue processing queue (recursive call via ref)
       if (audioQueueRef.current.length > 0) {
-        await processAudioQueue();
+        // Use setTimeout to avoid deep recursion
+        setTimeout(() => {
+          processAudioQueueRef.current?.();
+        }, 0);
       }
     } catch (error) {
       console.error('❌ Transcription error DETAILS:', error);
       console.error('❌ Error message:', error instanceof Error ? error.message : 'Unknown error');
       console.error('❌ Full error object:', JSON.stringify(error, null, 2));
-      toast({
+      toastRef.current({
         title: "Transcription error",
         description: error instanceof Error ? error.message : "Failed to transcribe audio chunk",
         variant: "destructive",
@@ -143,7 +144,27 @@ export default function Record() {
       setIsTranscribing(false);
       isUploadingRef.current = false;
     }
-  };
+  }, []);
+
+  // Store processAudioQueue in a ref for recursive calls
+  const processAudioQueueRef = useRef(processAudioQueue);
+  processAudioQueueRef.current = processAudioQueue;
+
+  // Audio chunk handler
+  const handleAudioData = useCallback(async (audioBlob: Blob) => {
+    if (!conversationIdRef.current) {
+      console.log('❌ No conversationId, skipping audio');
+      return;
+    }
+
+    console.log('✅ Audio chunk received:', audioBlob.size, 'bytes', 'conversationId:', conversationIdRef.current);
+    audioQueueRef.current.push(audioBlob);
+
+    // Process queue if not already uploading
+    if (!isUploadingRef.current) {
+      await processAudioQueue();
+    }
+  }, [processAudioQueue]);
 
   // Audio recorder
   const { state: audioState, controls: audioControls } = useAudioRecorder(handleAudioData);
@@ -200,7 +221,7 @@ export default function Record() {
         },
         async (payload) => {
           console.log('🎯 Real-time match event:', payload.eventType, payload.new);
-          const match = payload.new as any;
+          const match = payload.new as MatchPayload;
           if (!match || !match.contact_id) return;
           
           // Fetch contact details for this match
@@ -326,13 +347,14 @@ export default function Record() {
       
       // Create conversation in database
       console.log('📝 Creating conversation...');
-      const conversation = await createConversation.mutateAsync({
+      const conversationData: InsertConversation = {
         title: calendarEvent ? calendarEvent.title : `Conversation - ${new Date().toLocaleString()}`,
         recordedAt: new Date(),
         status: 'recording',
         eventId: eventId || null,
         ownedByProfile: '', // Added by the hook automatically
-      } as any);
+      };
+      const conversation = await createConversation.mutateAsync(conversationData);
       
       console.log('✅ Conversation created:', conversation.id);
       setConversationId(conversation.id);
@@ -494,7 +516,7 @@ export default function Record() {
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
                         <span data-testid="text-event-attendees">
-                          {(calendarEvent.attendees as any[]).length} attendee{(calendarEvent.attendees as any[]).length !== 1 ? 's' : ''}
+                          {(calendarEvent.attendees as Attendee[]).length} attendee{(calendarEvent.attendees as Attendee[]).length !== 1 ? 's' : ''}
                         </span>
                       </div>
                     ) : null}

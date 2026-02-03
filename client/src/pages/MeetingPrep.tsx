@@ -6,11 +6,16 @@ import { CalendarEvent } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Calendar, Clock, Users, MapPin, Video, Mic, X, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, Video, Mic, ArrowLeft } from 'lucide-react';
 import { format, formatDistance } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+
+interface Attendee {
+  displayName?: string;
+  email: string;
+}
 
 export default function MeetingPrep() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +23,7 @@ export default function MeetingPrep() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [notes, setNotes] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
+  const [_isRecording, _setIsRecording] = useState(false);
 
   // Fetch meeting details
   const { data: event, isLoading } = useQuery<CalendarEvent | null>({
@@ -106,7 +111,7 @@ export default function MeetingPrep() {
 
   const startTime = new Date(event.startTime);
   const now = new Date();
-  const attendees = (event.attendees as any[]) || [];
+  const attendees = (event.attendees as Attendee[]) || [];
   const timeUntil = formatDistance(startTime, now, { addSuffix: true });
   const timeString = format(startTime, 'h:mm a');
   const dateString = format(startTime, 'EEEE, MMMM d, yyyy');

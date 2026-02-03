@@ -14,7 +14,7 @@ export function useContacts() {
         throw new Error('Not authenticated');
       }
 
-      let allContacts: any[] = [];
+      let allContacts: Record<string, unknown>[] = [];
       let from = 0;
       const batchSize = 1000;
       let hasMore = true;
@@ -115,7 +115,7 @@ export function useCreateContact() {
           await extractThesis(createdContact.id);
           queryClient.invalidateQueries({ queryKey: ['/api/contacts', createdContact.id, 'thesis'] });
           console.log('[Auto] Thesis extracted for new contact:', createdContact.name);
-        } catch (error) {
+        } catch {
           console.log('[Auto] Thesis extraction skipped (edge function not deployed)');
         }
       }

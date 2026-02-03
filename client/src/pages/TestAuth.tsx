@@ -37,8 +37,8 @@ export default function TestAuth() {
         setResult(prev => prev + `\n✅ Database query successful`);
       }
       
-    } catch (err: any) {
-      setResult(`❌ Error: ${err.message}`);
+    } catch (err: unknown) {
+      setResult(`❌ Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

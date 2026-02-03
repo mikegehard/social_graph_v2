@@ -127,7 +127,7 @@ export default function IntroEmailPanel({ matches, onSendEmail }: IntroEmailPane
                     conversationContext={match.conversationContext}
                     introBullets={match.introBulletsForA}
                     onSend={(message) => handleSend(idx, match.contactA.email, message)}
-                    onCopy={(message) => console.log('Copied email for', match.contactA.name)}
+                    onCopy={(_message) => console.log('Copied email for', match.contactA.name)}
                   />
                 </div>
 
@@ -148,7 +148,7 @@ export default function IntroEmailPanel({ matches, onSendEmail }: IntroEmailPane
                     conversationContext={match.conversationContext}
                     introBullets={match.introBulletsForB}
                     onSend={(message) => handleSend(idx, match.contactB.email, message)}
-                    onCopy={(message) => console.log('Copied email for', match.contactB.name)}
+                    onCopy={(_message) => console.log('Copied email for', match.contactB.name)}
                   />
                 </div>
               </div>

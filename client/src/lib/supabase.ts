@@ -56,9 +56,9 @@ function createSupabaseInstance() {
 
 // Export the getter function instead of creating instance at module load time
 export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     const instance = createSupabaseInstance();
-    return (instance as any)[prop];
+    return instance[prop as keyof typeof instance];
   }
 });
 

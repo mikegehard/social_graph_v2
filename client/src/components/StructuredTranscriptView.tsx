@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 
 interface TranscriptEntry {
@@ -30,7 +30,6 @@ export default function StructuredTranscriptView({
   }
 
   const speakers = Array.from(new Set(transcript.map(e => e.speaker).filter(Boolean)));
-  const firstTimestamp = transcript[0]?.t;
   
   // Group by speaker turns - consecutive segments by the same speaker
   const groupedBySpeaker = transcript.reduce((acc, entry, idx) => {
